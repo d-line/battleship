@@ -4,10 +4,16 @@ type BoardProps = {
     size: number
 }
 
-function Cell() {
+type PlaceCellProps = {
+    r: number;
+    c: number;
+}
+function PlaceCell(props: PlaceCellProps) {
+    const {r, c} = props;
+
     return (
         <div draggable={false} className={`w-8 h-8 border border-slate-300 flex items-center justify-center select-none bg-white`}>
-            x
+            {r}/{c}
         </div>
     )
 }
@@ -30,7 +36,7 @@ export function Board(props: BoardProps) {
     for (let r = 0; r < size; r++) {
         const row: JSX.Element[] = [];
         for (let c = 0; c < size; c++) {
-            row.push(<Cell />)
+            row.push(<PlaceCell key={c} r={r} c={c}/>)
         }
 
         grid.push(<div key={r} className="flex">{row}</div>);
