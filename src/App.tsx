@@ -1,4 +1,5 @@
 import './App.css'
+import { Board } from './components/Board'
 
 export default function App() {
 
@@ -14,13 +15,15 @@ export default function App() {
             Ship Pallette
           </div>
 
-          <div className="md:col-span-1 border-solid border-2">
-            Your Board
+          <div className="md:col-span-1">
+            <h2 className="font-semibold mb-2">Your Board</h2>
+            <Board size={10} />
           </div>
 
-           <div className="md:col-span-1 border-solid border-2">
-            Opponent Board
-           </div>
+          <div className="md:col-span-1">
+            <h2 className="font-semibold mb-2">Opponent Board</h2>
+            <Board size={10}/>
+          </div>
         </div>
 
         <footer className="mt-10 text-xs text-slate-500">
