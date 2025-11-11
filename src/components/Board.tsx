@@ -5,6 +5,7 @@ type PlaceBoardProps = {
     size: number;
     mode: "place";
     ships: PlacedShip[];
+    onDropCell: (r: number, c: number) => void;
 }
 
 type AttackBoardProps = {
@@ -18,6 +19,7 @@ type PlaceCellProps = {
     r: number;
     c: number;
     ships: PlacedShip[];
+    onDropCell: (r: number, c: number) => void;
 }
 
 type AttackCellProps = {
@@ -27,14 +29,17 @@ type AttackCellProps = {
 }
 
 function PlaceCell(props: PlaceCellProps) {
-    const { r, c, ships } = props;
+    const { r, c, ships, onDropCell } = props;
 
     const presenceOfShip = ships.some(ship =>
         ship.coords.some(coord => coord.r === r && coord.c === c)
     );
 
+    const handleDragOver: React.DragEventHandler<HTMLDivElement> = (e) => { e.preventDefault(); };
+    const handleDrop: React.DragEventHandler<HTMLDivElement> = (e) => { e.preventDefault(); onDropCell(r, c); };
+
     return (
-        <div draggable={false} className={`w-8 h-8 border border-slate-300 flex items-center justify-center select-none bg-white`}>
+        <div draggable={false} onDragOver={handleDragOver} onDrop={handleDrop} className={`w-8 h-8 border border-slate-300 flex items-center justify-center select-none bg-white`}>
             {presenceOfShip && <div className='w-6 h-6 bg-slate-800 rounded' />}
         </div>
     )
@@ -42,7 +47,7 @@ function PlaceCell(props: PlaceCellProps) {
 
 function AttackCell(props: AttackCellProps) {
     // const { r, c } = props;
-    const cell = <div className="w-6 h-6"/>;
+    const cell = <div className="w-6 h-6" />;
 
     return (
         <div className={`w-8 h-8 border cursor-pointer border-slate-300 flex items-center justify-center bg-white hover:bg-slate-100}`}>
@@ -62,6 +67,7 @@ function AxisLabels({ size }: { size: number }) {
 
 export function Board(props: BoardProps) {
     const size = props.size;
+
     const grid: JSX.Element[] = [];
 
     // Grid generation TODO: move to helper function
@@ -69,7 +75,7 @@ export function Board(props: BoardProps) {
         const row: JSX.Element[] = [];
         for (let c = 0; c < size; c++) {
             if (props.mode === 'place') {
-                row.push(<PlaceCell key={c} r={r} c={c} ships={props.ships} />);
+                row.push(<PlaceCell key={c} r={r} c={c} ships={props.ships} onDropCell={props.onDropCell} />);
             } else {
                 row.push(<AttackCell key={c} r={r} c={c} />);
                 // Attack mode cell (not implemented yet)
