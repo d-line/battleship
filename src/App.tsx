@@ -1,40 +1,40 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from "react";
 import { Board } from './components/Board'
 import { Legend, ShipPalette, type ShipSpec } from './components/ShipPalette';
-import type { Orientation, PlacedShip } from './engine/types'
+import type { Orientation, PlacedShip, PlayerId } from './engine/types'
 import { SHIP_SET } from "./engine/constant";
+import { LocalEngine } from "./engine/localEngine";
 
-// test ships
-const ships: PlacedShip[] = [
-  {
-    key: 'ship-1',
-    bow: { r: 0, c: 0 },
-    orientation: 'H',
-    coords: [{ r: 0, c: 0 }, { r: 0, c: 1 }, { r: 0, c: 2 }],
-    hits: new Set<string>(),
-  },
-  {
-    key: 'ship-2',
-    bow: { r: 2, c: 3 },
-    orientation: 'V',
-    coords: [{ r: 2, c: 3 }, { r: 3, c: 3 }, { r: 4, c: 3 }, { r: 5, c: 3 }],
-    hits: new Set<string>(),
-  },
-  {
-    key: 'ship-3',
-    bow: { r: 5, c: 5 },
-    orientation: 'H',
-    coords: [{ r: 5, c: 5 }, { r: 5, c: 6 }],
-    hits: new Set<string>(),
-  }
-];
+function useEngine() {
+  const [ engine ] = useState(() => new LocalEngine()) 
+  const [, setTick] = useState(0);
+  const force = () => setTick(t => t + 1);
+  return {engine, force};
+}
 
 export default function App() {
+  const { engine, force } = useEngine();
+  const [me] = useState<PlayerId>("P1");
+
   const [dragShip, setDragShip] = useState<ShipSpec | null>(null);
   const [orientation, setOrientation] = useState<Orientation>("H");
 
+  const myBoard = engine.getPrivateBoard(me);
+
+
   const SHIP_SPEC: ShipSpec[] = SHIP_SET.map((s) => ({ id: s.id, name: s.name, length: s.length }));
-  console.log({dragShip})
+
+
+  const onCellDrop = (r: number, c: number) => {
+    console.log({r, c});
+    if (!dragShip) return;
+    const res = (engine as any).placeShip(me, dragShip.id, { r, c }, orientation);
+    if (!res.ok) alert(`Cannot place: ${res.reason}`);
+    setDragShip(null);
+    force();
+  };
+
   return (
     <div className='min-h-screen w-full bg-slate-50 text-slate-900'>
       <div className="max-w-6xl mx-auto p-4">
@@ -55,13 +55,13 @@ export default function App() {
 
           <div className="md:col-span-1">
             <h2 className="font-semibold mb-2">Your Board</h2>
-            <Board size={10} mode='place' ships={ships} />
+            <Board size={10} mode='place' ships={myBoard.ships} onDropCell={onCellDrop} />
           </div>
 
-          <div className="md:col-span-1">
+          {/* <div className="md:col-span-1">
             <h2 className="font-semibold mb-2">Opponent Board</h2>
-            <Board size={10} mode='attack' ships={ships} />
-          </div>
+            <Board size={10} mode='attack' />
+          </div> */}
         </div>
 
         <footer className="mt-10 text-xs text-slate-500">
