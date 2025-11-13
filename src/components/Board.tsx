@@ -1,16 +1,23 @@
-import React, { type JSX } from 'react';
-import type { PlacedShip } from '../engine/types';
+import React, { useMemo, type JSX } from 'react';
+import { overlaps, spanCoords, type Coord, type Orientation, type PrivateBoardView, type ShipKind, type Shot } from '../engine/types';
+import { BOARD } from '../engine/constant';
+
+export type AttackShot = { key: string; at: Coord; result: Shot["result"] };
 
 type PlaceBoardProps = {
     size: number;
     mode: "place";
-    ships: PlacedShip[];
+    ships: PrivateBoardView["ships"];
     onDropCell: (r: number, c: number) => void;
+    preview: null | { kind: ShipKind["id"]; length: number; orientation: Orientation };
 }
 
 type AttackBoardProps = {
     size: number;
     mode: "attack";
+    shots: AttackShot[];
+    onShootCell: (r: number, c: number) => void;
+    disabled: boolean;
 }
 
 type BoardProps = PlaceBoardProps | AttackBoardProps;
@@ -18,18 +25,21 @@ type BoardProps = PlaceBoardProps | AttackBoardProps;
 type PlaceCellProps = {
     r: number;
     c: number;
-    ships: PlacedShip[];
+    ships: PrivateBoardView['ships'];
     onDropCell: (r: number, c: number) => void;
+    preview: null | { kind: ShipKind["id"]; length: number; orientation: Orientation };
 }
 
 type AttackCellProps = {
     r: number;
     c: number;
-    ships: PlacedShip[];
+    onShoot: (r: number, c: number) => void;
+    shots: AttackShot[];
+    disabled: boolean;
 }
 
 function PlaceCell(props: PlaceCellProps) {
-    const { r, c, ships, onDropCell } = props;
+    const { r, c, ships, onDropCell, preview } = props;
 
     const presenceOfShip = ships.some(ship =>
         ship.coords.some(coord => coord.r === r && coord.c === c)
@@ -38,19 +48,36 @@ function PlaceCell(props: PlaceCellProps) {
     const handleDragOver: React.DragEventHandler<HTMLDivElement> = (e) => { e.preventDefault(); };
     const handleDrop: React.DragEventHandler<HTMLDivElement> = (e) => { e.preventDefault(); onDropCell(r, c); };
 
+    const isPreview = useMemo(() => {
+        if (!preview) return false;
+        const coords = spanCoords({ r, c }, preview.orientation, preview.length);
+        const inBounds = coords.every((p) => p.r >= 0 && p.c >= 0 && p.r < BOARD.size && p.c < BOARD.size);
+        if (!inBounds) return false;
+        const conflict = ships.some((s) => overlaps(s.coords, coords));
+        return !conflict;
+    }, [preview, r, c, ships]);
+
     return (
-        <div draggable={false} onDragOver={handleDragOver} onDrop={handleDrop} className={`w-8 h-8 border border-slate-300 flex items-center justify-center select-none bg-white`}>
+        <div draggable={false} onDragOver={handleDragOver} onDrop={handleDrop} 
+        className={`w-8 h-8 border border-slate-300 flex items-center justify-center select-none ${isPreview ? "bg-indigo-200" : "bg-white"}`}>
             {presenceOfShip && <div className='w-6 h-6 bg-slate-800 rounded' />}
         </div>
     )
 }
 
 function AttackCell(props: AttackCellProps) {
-    // const { r, c } = props;
-    const cell = <div className="w-6 h-6" />;
+    const { r, c, onShoot, shots, disabled } = props;
+    const shot = shots.find((s) => s.at.r === r && s.at.c === c);
 
+    const handleClick = () => { if (!disabled && !shot) onShoot(r, c); };
+
+    let cell = <div className="w-6 h-6" />;
+    if (shot) {
+        if (shot.result === "miss") cell = <div className="w-5 h-5 rounded-full border-2 border-slate-800"/>;
+        if (shot.result === "hit" || shot.result === "sunk") cell = <div className="w-6 h-6 bg-rose-600 rounded"/>;
+    }
     return (
-        <div className={`w-8 h-8 border cursor-pointer border-slate-300 flex items-center justify-center bg-white hover:bg-slate-100}`}>
+        <div onClick={handleClick} className={`w-8 h-8 border cursor-pointer border-slate-300 flex items-center justify-center ${disabled ? "bg-slate-100" : "bg-white hover:bg-slate-100"}`}>
             {cell}
         </div>);
 }
@@ -75,10 +102,9 @@ export function Board(props: BoardProps) {
         const row: JSX.Element[] = [];
         for (let c = 0; c < size; c++) {
             if (props.mode === 'place') {
-                row.push(<PlaceCell key={c} r={r} c={c} ships={props.ships} onDropCell={props.onDropCell} />);
+                row.push(<PlaceCell key={c} r={r} c={c} ships={props.ships} onDropCell={props.onDropCell} preview={props.preview}/>);
             } else {
-                row.push(<AttackCell key={c} r={r} c={c} />);
-                // Attack mode cell (not implemented yet)
+                row.push(<AttackCell key={c} r={r} c={c} shots={props.shots} onShoot={props.onShootCell} disabled={props.disabled} />);
             }
 
         }
