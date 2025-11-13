@@ -1,10 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Board } from './components/Board'
 import { Legend, ShipPalette, type ShipSpec } from './components/ShipPalette';
 import type { Orientation, PlayerId } from './engine/types'
 import { SHIP_SET } from "./engine/constant";
 import { LocalEngine } from "./engine/localEngine";
+import { aiChooseShot, randomPlacement } from "./ai/ai";
+import { StatusRibbon } from "./components/StatusRibbon";
 
 function useEngine() {
   const [ engine ] = useState(() => new LocalEngine()) 
@@ -26,6 +28,28 @@ export default function App() {
 
   const myBoard = engine.getPrivateBoard(me);
   const oppBoard = engine.getPublicBoard(me);
+
+  // Auto-place ships for P2 when in placing phase
+  useEffect(() => {
+    if (status.phase === "placing" && myBoard.ships.length === 0) {
+      randomPlacement(engine, "P2");
+      force();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status.phase]);
+
+  // AI turn logic
+  useEffect(() => {
+    if (status.phase === "playing" && status.turn === "P2") {
+      const t = setTimeout(() => {
+        const oppView = engine.getPublicBoard("P2");
+        const at = aiChooseShot(oppView);
+        (engine as any).fire("P2", at);
+        force();
+      }, 500);
+      return () => clearTimeout(t);
+    }
+  }, [status, engine, force]);
 
   const SHIP_SPEC: ShipSpec[] = SHIP_SET.map((s) => ({ id: s.id, name: s.name, length: s.length }));
 
@@ -59,6 +83,8 @@ export default function App() {
             <button disabled={!allPlaced} onClick={readyUp} className={`px-3 py-2 rounded-xl ${allPlaced ? "bg-indigo-600 text-white hover:bg-indigo-700" : "bg-slate-300 text-slate-500"}`}>I'm Ready</button>
           </div>
         </header>
+
+        <StatusRibbon status={engine.getStatus()} />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
           <div className="md:col-span-1">
