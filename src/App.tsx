@@ -94,7 +94,7 @@ export default function App() {
 
           <div className="md:col-span-1">
             <h2 className="font-semibold mb-2">Your Board</h2>
-            <Board size={10} mode='place' ships={myBoard.ships} onDropCell={onCellDrop} preview={dragShip ? { kind: dragShip.id, length: dragShip.length, orientation } : null} />
+            <Board size={10} mode='place' ships={myBoard.ships} onDropCell={onCellDrop} preview={dragShip ? { kind: dragShip.id, length: dragShip.length, orientation } : null} shots={myBoard.shotsReceived}  />
           </div>
 
           <div className="md:col-span-1">

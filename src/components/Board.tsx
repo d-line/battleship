@@ -2,7 +2,7 @@ import React, { useMemo, type JSX } from 'react';
 import { overlaps, spanCoords, type Coord, type Orientation, type PrivateBoardView, type ShipKind, type Shot } from '../engine/types';
 import { BOARD } from '../engine/constant';
 
-export type AttackShot = { key: string; at: Coord; result: Shot["result"] };
+export type CellShot = {at: Coord; result: Shot["result"] };
 
 type PlaceBoardProps = {
     size: number;
@@ -10,12 +10,13 @@ type PlaceBoardProps = {
     ships: PrivateBoardView["ships"];
     onDropCell: (r: number, c: number) => void;
     preview: null | { kind: ShipKind["id"]; length: number; orientation: Orientation };
+    shots: CellShot[];
 }
 
 type AttackBoardProps = {
     size: number;
     mode: "attack";
-    shots: AttackShot[];
+    shots: CellShot[];
     onShootCell: (r: number, c: number) => void;
     disabled: boolean;
 }
@@ -28,18 +29,19 @@ type PlaceCellProps = {
     ships: PrivateBoardView['ships'];
     onDropCell: (r: number, c: number) => void;
     preview: null | { kind: ShipKind["id"]; length: number; orientation: Orientation };
+    shots: CellShot[];
 }
 
 type AttackCellProps = {
     r: number;
     c: number;
     onShoot: (r: number, c: number) => void;
-    shots: AttackShot[];
+    shots: CellShot[];
     disabled: boolean;
 }
 
 function PlaceCell(props: PlaceCellProps) {
-    const { r, c, ships, onDropCell, preview } = props;
+    const { r, c, ships, onDropCell, preview, shots } = props;
 
     const presenceOfShip = ships.some(ship =>
         ship.coords.some(coord => coord.r === r && coord.c === c)
@@ -57,10 +59,25 @@ function PlaceCell(props: PlaceCellProps) {
         return !conflict;
     }, [preview, r, c, ships]);
 
+    const shot = shots.find((s) => s.at.r === r && s.at.c === c);
+    let content: JSX.Element | null = null;
+
+    if (shot) {
+        // Same visuals as AttackCell
+        if (shot.result === "miss") {
+            content = <div className="w-5 h-5 rounded-full border-2 border-slate-800" />;
+        } else {
+            // hit or sink
+            content = <div className="w-6 h-6 bg-rose-600 rounded" />;
+        }
+    } else if (presenceOfShip) {
+        content = <div className="w-6 h-6 rounded bg-slate-800" />;
+    }
+
     return (
         <div draggable={false} onDragOver={handleDragOver} onDrop={handleDrop} 
         className={`w-8 h-8 border border-slate-300 flex items-center justify-center select-none ${isPreview ? "bg-indigo-200" : "bg-white"}`}>
-            {presenceOfShip && <div className='w-6 h-6 bg-slate-800 rounded' />}
+            { content }
         </div>
     )
 }
@@ -102,7 +119,7 @@ export function Board(props: BoardProps) {
         const row: JSX.Element[] = [];
         for (let c = 0; c < size; c++) {
             if (props.mode === 'place') {
-                row.push(<PlaceCell key={c} r={r} c={c} ships={props.ships} onDropCell={props.onDropCell} preview={props.preview}/>);
+                row.push(<PlaceCell key={c} r={r} c={c} ships={props.ships} onDropCell={props.onDropCell} preview={props.preview} shots={props.shots}/>);
             } else {
                 row.push(<AttackCell key={c} r={r} c={c} shots={props.shots} onShoot={props.onShootCell} disabled={props.disabled} />);
             }
