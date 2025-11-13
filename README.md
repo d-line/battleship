@@ -3,6 +3,7 @@
 Competitive 1v1 Battleship implementation focused on **gameplay UX**, **rules engine**, and **clean architecture**.  
 UI is a local React SPA; game logic is encapsulated in a reusable engine class, with a simple AI opponent for offline play.
 
+![screenshot](./screen.png)
 ---
 
 ## Tech Stack
